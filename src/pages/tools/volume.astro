@@ -1,0 +1,102 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout>
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>Объём тренировки и тоннаж</h1>
+		<p>Суммирует объём (повторы × подходы) и тоннаж (вес × повторы × подходы) по упражнениям.</p>
+		<details>
+			<summary class="cursor-pointer">Как пользоваться</summary>
+			<ol>
+				<li>Добавляйте строки для каждого упражнения и указывайте вес, подходы и повторы.</li>
+				<li>Результаты считаются автоматически; данные сохраняются локально.</li>
+			</ol>
+		</details>
+		<div class="not-prose grid gap-3 max-w-2xl">
+			<table class="w-full text-sm">
+				<thead>
+					<tr class="text-left">
+						<th class="py-2">Упражнение</th>
+						<th class="py-2">Вес, кг</th>
+						<th class="py-2">Подходы</th>
+						<th class="py-2">Повторы</th>
+						<th class="py-2">Объём</th>
+						<th class="py-2">Тоннаж</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody id="rows"></tbody>
+			</table>
+			<button id="add" class="inline-flex items-center gap-2 rounded border px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">Добавить упражнение</button>
+			<div id="total" class="text-sm"></div>
+		</div>
+	</section>
+</Layout>
+
+<script>
+  const rowsEl = document.getElementById('rows');
+  const totalEl = document.getElementById('total');
+  const addBtn = document.getElementById('add');
+  let rows = JSON.parse(localStorage.getItem('volume') || '[]');
+
+  function renderRow(row, idx) {
+    const volume = row.sets * row.reps;
+    const tonnage = row.weight * row.sets * row.reps;
+    return `
+      <tr>
+        <td class="py-1"><input data-i="${idx}" data-k="name" class="border rounded px-2 py-1 w-full" value="${row.name}" /></td>
+        <td class="py-1"><input type="number" min="0" step="0.5" data-i="${idx}" data-k="weight" class="border rounded px-2 py-1 w-24" value="${row.weight}" /></td>
+        <td class="py-1"><input type="number" min="0" step="1" data-i="${idx}" data-k="sets" class="border rounded px-2 py-1 w-20" value="${row.sets}" /></td>
+        <td class="py-1"><input type="number" min="0" step="1" data-i="${idx}" data-k="reps" class="border rounded px-2 py-1 w-20" value="${row.reps}" /></td>
+        <td class="py-1 w-24 text-right">${volume}</td>
+        <td class="py-1 w-28 text-right">${tonnage}</td>
+        <td class="py-1"><button data-del="${idx}" class="text-red-600 hover:underline">Удалить</button></td>
+      </tr>
+    `;
+  }
+
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+  function recalc() {
+    rowsEl.innerHTML = rows.map(renderRow).join('');
+    const totalVolume = rows.reduce((s, r) => s + r.sets * r.reps, 0);
+    const totalTonnage = rows.reduce((s, r) => s + r.weight * r.sets * r.reps, 0);
+    totalEl.textContent = `Итого: объём ${totalVolume}, тоннаж ${totalTonnage} кг`;
+  }
+
+  function persist() { localStorage.setItem('volume', JSON.stringify(rows)); }
+
+  addBtn.addEventListener('click', () => {
+    rows.push({ name: '', weight: 0, sets: 3, reps: 10 });
+    persist();
+    recalc();
+  });
+
+  rowsEl.addEventListener('input', (e) => {
+    const t = e.target;
+    const i = parseInt(t.getAttribute('data-i'));
+    const k = t.getAttribute('data-k');
+    if (['weight','sets','reps'].includes(k)) {
+      rows[i][k] = clamp(parseFloat(t.value || '0'), 0, 10000);
+    } else {
+      rows[i][k] = t.value;
+    }
+    persist();
+    recalc();
+  });
+
+  rowsEl.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t.matches('button[data-del]')) {
+      const i = parseInt(t.getAttribute('data-del'));
+      rows.splice(i, 1);
+      persist();
+      recalc();
+    }
+  });
+
+  if (rows.length === 0) rows = [{ name: 'Присед', weight: 60, sets: 3, reps: 10 }];
+  recalc();
+</script>
+
+

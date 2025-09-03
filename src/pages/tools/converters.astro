@@ -1,0 +1,82 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { estimateOneRepMax, calculatePercentOfOneRm } from '../../lib/formulas/oneRm';
+---
+
+<Layout>
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>Конвертеры</h1>
+		<p>Килограммы ⇄ фунты, % от 1RM ⇄ вес и индекс массы тела (ИМТ).</p>
+		<div class="not-prose grid gap-6 max-w-xl">
+			<section>
+				<h2 class="prose">Кг ⇄ фунты</h2>
+				<div class="grid grid-cols-2 gap-3">
+					<label class="grid gap-1"><span>Килограммы</span><input id="kg" type="number" step="0.1" class="border rounded px-3 py-2" /></label>
+					<label class="grid gap-1"><span>Фунты</span><input id="lb" type="number" step="0.1" class="border rounded px-3 py-2" /></label>
+				</div>
+			</section>
+			<section>
+				<h2 class="prose">% от 1RM ⇄ вес</h2>
+				<div class="grid grid-cols-3 gap-3">
+					<label class="grid gap-1"><span>1RM, кг</span><input id="orm" type="number" step="0.1" class="border rounded px-3 py-2" /></label>
+					<label class="grid gap-1"><span>%</span><input id="pct" type="number" step="1" min="1" max="100" class="border rounded px-3 py-2" /></label>
+					<label class="grid gap-1"><span>Вес, кг</span><input id="wkg" type="number" step="0.1" class="border rounded px-3 py-2" /></label>
+				</div>
+			</section>
+			<section>
+				<h2 class="prose">ИМТ</h2>
+				<div class="grid grid-cols-3 gap-3 items-end">
+					<label class="grid gap-1"><span>Вес, кг</span><input id="bmiW" type="number" step="0.1" class="border rounded px-3 py-2" /></label>
+					<label class="grid gap-1"><span>Рост, см</span><input id="bmiH" type="number" step="1" class="border rounded px-3 py-2" /></label>
+					<div id="bmiOut" class="text-sm"></div>
+				</div>
+			</section>
+		</div>
+	</section>
+</Layout>
+
+<script>
+  function round(n, d=1) { const p = 10**d; return Math.round(n*p)/p; }
+  const kg = document.getElementById('kg');
+  const lb = document.getElementById('lb');
+  const orm = document.getElementById('orm');
+  const pct = document.getElementById('pct');
+  const wkg = document.getElementById('wkg');
+  const bmiW = document.getElementById('bmiW');
+  const bmiH = document.getElementById('bmiH');
+  const bmiOut = document.getElementById('bmiOut');
+
+  const LS = JSON.parse(localStorage.getItem('conv') || 'null') ?? { kg: 100, lb: 220.46, orm: 120, pct: 80, wkg: 96, bmiW: 80, bmiH: 180 };
+  kg.value = String(LS.kg); lb.value = String(LS.lb); orm.value = String(LS.orm); pct.value = String(LS.pct); wkg.value = String(LS.wkg); bmiW.value = String(LS.bmiW); bmiH.value = String(LS.bmiH);
+
+  function save() { localStorage.setItem('conv', JSON.stringify({ kg: +kg.value||0, lb: +lb.value||0, orm: +orm.value||0, pct: +pct.value||0, wkg: +wkg.value||0, bmiW: +bmiW.value||0, bmiH: +bmiH.value||0 })); }
+
+  kg.addEventListener('input', () => { lb.value = String(round((+kg.value||0) * 2.20462262, 2)); save(); });
+  lb.addEventListener('input', () => { kg.value = String(round((+lb.value||0) / 2.20462262, 2)); save(); });
+
+  function recalcPct() {
+    const o = +orm.value||0, p = +pct.value||0; wkg.value = String(round(o * p / 100, 2)); save();
+  }
+  function recalcOrm() {
+    const w = +wkg.value||0, p = +pct.value||0; orm.value = String(p>0 ? round(w * 100 / p, 2) : 0); save();
+  }
+  orm.addEventListener('input', recalcPct);
+  pct.addEventListener('input', () => { recalcPct(); });
+  wkg.addEventListener('input', recalcOrm);
+
+  function recalcBmi() {
+    const w = +bmiW.value||0; const h = (+bmiH.value||0)/100; const bmi = h>0 ? w/(h*h) : 0; let cat = '';
+    if (bmi) {
+      if (bmi < 18.5) cat = 'дефицит массы';
+      else if (bmi < 25) cat = 'норма';
+      else if (bmi < 30) cat = 'избыточная масса';
+      else cat = 'ожирение';
+    }
+    bmiOut.textContent = bmi ? `ИМТ: ${round(bmi,1)} (${cat})` : '';
+    save();
+  }
+  ;['input','change'].forEach(ev => { bmiW.addEventListener(ev, recalcBmi); bmiH.addEventListener(ev, recalcBmi); });
+  recalcPct(); recalcBmi();
+</script>
+
+

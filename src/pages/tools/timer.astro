@@ -1,0 +1,58 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout>
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>Таймер отдыха</h1>
+		<p>Простой таймер для отдыха между подходами. Поддерживает быстрые пресеты и звук.</p>
+		<div class="not-prose grid gap-3 max-w-md">
+			<div class="text-4xl font-mono" id="display">00:00</div>
+			<div class="flex gap-2">
+				<button data-preset="60" class="rounded border px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">60с</button>
+				<button data-preset="90" class="rounded border px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">90с</button>
+				<button data-preset="120" class="rounded border px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">120с</button>
+				<input id="custom" type="number" min="5" step="5" placeholder="сек" class="border rounded px-3 py-2 w-24" />
+			</div>
+			<div class="flex gap-2">
+				<button id="start" class="rounded border px-3 py-2 bg-green-600 text-white hover:bg-green-700">Старт</button>
+				<button id="stop" class="rounded border px-3 py-2">Стоп</button>
+				<button id="reset" class="rounded border px-3 py-2">Сброс</button>
+			</div>
+		</div>
+	</section>
+</Layout>
+
+<script>
+  const display = document.getElementById('display');
+  const startBtn = document.getElementById('start');
+  const stopBtn = document.getElementById('stop');
+  const resetBtn = document.getElementById('reset');
+  const presets = document.querySelectorAll('button[data-preset]');
+  const custom = document.getElementById('custom');
+  let target = 90; // seconds
+  let remain = target; let timer = null;
+  const ding = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
+
+  function fmt(s){ const m = Math.floor(s/60); const ss = s%60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
+  function render(){ display.textContent = fmt(remain); }
+  function setTarget(s){ target = Math.max(5, Math.min(3600, s|0)); remain = target; render(); localStorage.setItem('timer', String(target)); }
+
+  presets.forEach(b => b.addEventListener('click', () => setTarget(parseInt(b.getAttribute('data-preset')))));
+  custom.addEventListener('change', () => setTarget(parseInt(custom.value)));
+  startBtn.addEventListener('click', () => {
+    if (timer) return;
+    timer = setInterval(() => {
+      if (remain > 0) { remain -= 1; render(); }
+      if (remain <= 0) { clearInterval(timer); timer = null; ding.play(); }
+    }, 1000);
+  });
+  stopBtn.addEventListener('click', () => { if (timer) { clearInterval(timer); timer = null; } });
+  resetBtn.addEventListener('click', () => { remain = target; render(); });
+
+  const saved = parseInt(localStorage.getItem('timer') || '90');
+  setTarget(saved);
+  render();
+</script>
+
+

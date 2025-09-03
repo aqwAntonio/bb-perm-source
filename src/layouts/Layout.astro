@@ -8,6 +8,19 @@ import '../styles/global.css';
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content="Калькуляторы для тренировок и питания: TDEE/BMR, 1RM, объём/тоннаж, конвертеры, таймер, чек‑лист. Быстро и без рекламы." />
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content="bodybuilding.perm.ru — инструменты для тренировок" />
+		<meta property="og:description" content="TDEE/BMR, 1RM, объём/тоннаж, конвертеры, таймер, чек‑лист — всё под рукой." />
+		<meta property="og:url" content={Astro.site?.toString() ?? 'https://bodybuilding.perm.ru'} />
+		<meta name="twitter:card" content="summary" />
+		<script is:inline type="application/ld+json">{JSON.stringify({
+			"@context":"https://schema.org",
+			"@type":"WebSite",
+			"url": (Astro.site?.toString() ?? 'https://bodybuilding.perm.ru'),
+			"name":"bodybuilding.perm.ru",
+			"description":"Калькуляторы для тренировок и питания в Перми: TDEE/BMR, 1RM, объём, конвертеры, таймер, чек‑лист."
+		})}</script>
 		<script is:inline>
 			(function(m,e,t,r,i,k,a){
 				m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
