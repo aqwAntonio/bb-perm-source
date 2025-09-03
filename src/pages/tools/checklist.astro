@@ -28,13 +28,14 @@ import Layout from '../../layouts/Layout.astro';
 
   function render(){
     listEl.innerHTML = items.map((it, i) => `
-      <li class="flex items-center gap-2" draggable="true" data-i="${i}">
+      <li class="flex items-center gap-2 cursor-pointer" draggable="true" data-i="${i}">
         <button type="button" class="px-2 cursor-grab select-none" data-handle aria-label="Перетащить">↕</button>
         <input type="checkbox" data-i="${i}" ${it.done?'checked':''} />
         <input type="text" data-edit="${i}" class="border rounded px-2 py-1 flex-1" value="${it.text}" />
         <button data-del="${i}" class="text-red-600 hover:underline">Удалить</button>
       </li>
     `).join('');
+    setupDragAndDrop();
   }
   function save(){ localStorage.setItem('checklist', JSON.stringify(items)); }
   addBtn.addEventListener('click', () => { const t = input.value.trim(); if (!t) return; items.push({ text: t, done: false }); input.value=''; save(); render(); });
@@ -43,37 +44,36 @@ import Layout from '../../layouts/Layout.astro';
   });
   listEl.addEventListener('input', (e) => { const t = e.target; if (t.matches('input[type="text"][data-edit]')) { const i = +t.getAttribute('data-edit'); items[i].text = t.value; save(); } });
   listEl.addEventListener('click', (e) => { const t = e.target; if (t.matches('button[data-del]')) { const i = +t.getAttribute('data-del'); items.splice(i,1); save(); render(); } });
-  let dragIndex = null;
-  let dragEl = null;
-  listEl.addEventListener('dragstart', (e) => {
-    const li = e.target.closest('li[draggable]');
-    if (!li) return;
-    if (!e.target.closest('[data-handle]')) { e.preventDefault(); return; }
-    dragIndex = +li.getAttribute('data-i');
-    e.dataTransfer.effectAllowed = 'move';
-    try { e.dataTransfer.setData('text/plain', String(dragIndex)); } catch {}
-    dragEl = li;
-    li.classList.add('opacity-50');
-  });
-  listEl.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  });
-  listEl.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const li = e.target.closest('li[draggable]');
-    if (!li || dragIndex === null) return;
-    const to = +li.getAttribute('data-i');
-    if (to === dragIndex) { dragIndex = null; render(); return; }
-    const [moved] = items.splice(dragIndex, 1);
-    let toIndex = to;
-    if (toIndex > dragIndex) toIndex -= 1;
-    items.splice(toIndex, 0, moved);
-    save();
-    dragIndex = null;
-    render();
-  });
-  listEl.addEventListener('dragend', () => { dragIndex = null; if (dragEl) { dragEl.classList.remove('opacity-50'); dragEl = null; } });
+
+  let dragFrom = null;
+  function setupDragAndDrop() {
+    const lis = listEl.querySelectorAll('li[draggable]');
+    lis.forEach((li, idx) => {
+      li.addEventListener('dragstart', (e) => {
+        if (!e.target.closest('[data-handle]')) { e.preventDefault(); return; }
+        dragFrom = idx;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(idx));
+        li.style.opacity = '0.5';
+      });
+      li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+      li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (dragFrom === null || dragFrom === idx) return;
+        const [moved] = items.splice(dragFrom, 1);
+        items.splice(idx, 0, moved);
+        save();
+        render();
+      });
+      li.addEventListener('dragend', () => {
+        li.style.opacity = '';
+        dragFrom = null;
+      });
+    });
+  }
   render();
 </script>
 
