@@ -28,8 +28,8 @@ import Layout from '../../layouts/Layout.astro';
 
   function render(){
     listEl.innerHTML = items.map((it, i) => `
-      <li class="flex items-center gap-2 cursor-pointer" draggable="true" data-i="${i}">
-        <button type="button" class="px-2 cursor-grab select-none" data-handle aria-label="Перетащить">↕</button>
+      <li class="flex items-center gap-2" draggable="false" data-i="${i}">
+        <button type="button" class="px-2 cursor-grab select-none hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-handle draggable="true" aria-label="Перетащить">⋮⋮</button>
         <input type="checkbox" data-i="${i}" ${it.done?'checked':''} />
         <input type="text" data-edit="${i}" class="border rounded px-2 py-1 flex-1" value="${it.text}" />
         <button data-del="${i}" class="text-red-600 hover:underline">Удалить</button>
@@ -47,30 +47,41 @@ import Layout from '../../layouts/Layout.astro';
 
   let dragFrom = null;
   function setupDragAndDrop() {
-    const lis = listEl.querySelectorAll('li[draggable]');
-    lis.forEach((li, idx) => {
-      li.addEventListener('dragstart', (e) => {
-        if (!e.target.closest('[data-handle]')) { e.preventDefault(); return; }
+    const handles = listEl.querySelectorAll('[data-handle]');
+    const lis = listEl.querySelectorAll('li');
+    
+    handles.forEach((handle, idx) => {
+      const li = handle.closest('li');
+      
+      handle.addEventListener('dragstart', (e) => {
         dragFrom = idx;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', String(idx));
         li.style.opacity = '0.5';
+        console.log('Drag started from:', idx);
       });
+      
+      handle.addEventListener('dragend', () => {
+        li.style.opacity = '';
+        dragFrom = null;
+        console.log('Drag ended');
+      });
+    });
+    
+    lis.forEach((li, idx) => {
       li.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
       });
+      
       li.addEventListener('drop', (e) => {
         e.preventDefault();
         if (dragFrom === null || dragFrom === idx) return;
+        console.log('Drop from', dragFrom, 'to', idx);
         const [moved] = items.splice(dragFrom, 1);
         items.splice(idx, 0, moved);
         save();
         render();
-      });
-      li.addEventListener('dragend', () => {
-        li.style.opacity = '';
-        dragFrom = null;
       });
     });
   }
