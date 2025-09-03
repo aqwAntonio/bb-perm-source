@@ -1,0 +1,85 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { calculateTdee, suggestMacros, type Sex } from '../../lib/formulas/tdee';
+
+const stored = typeof window === 'undefined' ? null : JSON.parse(localStorage.getItem('tdee') || 'null');
+const initial = stored ?? { sex: 'male', weightKg: 80, heightCm: 180, ageYears: 30, activity: 'moderate' };
+---
+
+<Layout>
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>TDEE / BMR (Mifflin–St Jeor)</h1>
+		<form id="tdee-form" class="not-prose grid gap-3 max-w-xl" on:submit={(e) => e.preventDefault()}>
+			<label class="grid gap-1">
+				<span>Пол</span>
+				<select id="sex" class="border rounded px-3 py-2">
+					<option value="male">Мужчина</option>
+					<option value="female">Женщина</option>
+				</select>
+			</label>
+			<div class="grid grid-cols-3 gap-3">
+				<label class="grid gap-1"><span>Вес, кг</span><input id="weight" type="number" min="20" max="400" step="0.1" class="border rounded px-3 py-2" /></label>
+				<label class="grid gap-1"><span>Рост, см</span><input id="height" type="number" min="100" max="240" step="1" class="border rounded px-3 py-2" /></label>
+				<label class="grid gap-1"><span>Возраст</span><input id="age" type="number" min="10" max="100" step="1" class="border rounded px-3 py-2" /></label>
+			</div>
+			<label class="grid gap-1">
+				<span>Активность</span>
+				<select id="activity" class="border rounded px-3 py-2">
+					<option value="sedentary">Малоактивный</option>
+					<option value="light">Лёгкая (1–3 трен/нед)</option>
+					<option value="moderate">Средняя (3–5 трен/нед)</option>
+					<option value="active">Высокая (6–7 трен/нед)</option>
+					<option value="very_active">Очень высокая</option>
+				</select>
+			</label>
+		</form>
+
+		<div id="result" class="not-prose mt-6 grid gap-2"></div>
+	</section>
+</Layout>
+
+<script>
+  import { calculateTdee, suggestMacros } from '../../lib/formulas/tdee';
+
+  const form = document.getElementById('tdee-form');
+  const sexEl = document.getElementById('sex');
+  const weightEl = document.getElementById('weight');
+  const heightEl = document.getElementById('height');
+  const ageEl = document.getElementById('age');
+  const activityEl = document.getElementById('activity');
+  const resultEl = document.getElementById('result');
+
+  const initial = JSON.parse(localStorage.getItem('tdee') || 'null') ?? { sex: 'male', weightKg: 80, heightCm: 180, ageYears: 30, activity: 'moderate' };
+  sexEl.value = initial.sex;
+  weightEl.value = String(initial.weightKg);
+  heightEl.value = String(initial.heightCm);
+  ageEl.value = String(initial.ageYears);
+  activityEl.value = initial.activity;
+
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+  function calcAndRender() {
+    const state = {
+      sex: sexEl.value,
+      weightKg: clamp(parseFloat(weightEl.value || '0'), 20, 400),
+      heightCm: clamp(parseFloat(heightEl.value || '0'), 100, 240),
+      ageYears: clamp(parseInt(ageEl.value || '0'), 10, 100),
+      activity: activityEl.value,
+    };
+    localStorage.setItem('tdee', JSON.stringify(state));
+    const { bmr, tdee } = calculateTdee(state);
+    const macros = suggestMacros({ weightKg: state.weightKg, calories: Math.round(tdee) });
+    resultEl.innerHTML = `
+      <div class="grid gap-1">
+        <div class="font-medium">BMR: ${Math.round(bmr)} ккал/день</div>
+        <div class="font-medium">TDEE: ${Math.round(tdee)} ккал/день</div>
+        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Рекомендации по БЖУ (оценочно):</div>
+        <div class="text-sm">Белок: <b>${macros.proteinGrams} г</b>, Жиры: <b>${macros.fatGrams} г</b>, Углеводы: <b>${macros.carbsGrams} г</b></div>
+      </div>
+    `;
+  }
+
+  ['change','input'].forEach(ev => form.addEventListener(ev, calcAndRender));
+  calcAndRender();
+</script>
+
+

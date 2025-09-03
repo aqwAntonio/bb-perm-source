@@ -1,0 +1,73 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout>
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>1RM и % от 1RM</h1>
+		<form id="orm-form" class="not-prose grid gap-3 max-w-xl" on:submit={(e) => e.preventDefault()}>
+			<div class="grid grid-cols-3 gap-3">
+				<label class="grid gap-1"><span>Вес, кг</span><input id="w" type="number" min="1" max="500" step="0.5" class="border rounded px-3 py-2" /></label>
+				<label class="grid gap-1"><span>Повторы</span><input id="r" type="number" min="1" max="20" step="1" class="border rounded px-3 py-2" /></label>
+				<label class="grid gap-1"><span>Формула</span>
+					<select id="f" class="border rounded px-3 py-2">
+						<option value="epley">Epley</option>
+						<option value="brzycki">Brzycki</option>
+					</select>
+				</label>
+			</div>
+		</form>
+		<div class="not-prose mt-4">
+			<label class="grid gap-1 max-w-xs">
+				<span>% от 1RM</span>
+				<input id="p" type="number" min="1" max="100" step="1" class="border rounded px-3 py-2" />
+			</label>
+			<div id="orm-result" class="mt-4 grid gap-1"></div>
+		</div>
+	</section>
+</Layout>
+
+<script>
+  import { estimateOneRepMax, calculatePercentOfOneRm, reversePercentToOneRm } from '../../lib/formulas/oneRm';
+  const w = document.getElementById('w');
+  const r = document.getElementById('r');
+  const f = document.getElementById('f');
+  const p = document.getElementById('p');
+  const out = document.getElementById('orm-result');
+
+  const initial = JSON.parse(localStorage.getItem('orm') || 'null') ?? { w: 100, r: 5, f: 'epley', p: 80 };
+  w.value = String(initial.w); r.value = String(initial.r); f.value = initial.f; p.value = String(initial.p);
+
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+  function calc() {
+    const state = {
+      w: clamp(parseFloat(w.value || '0'), 1, 500),
+      r: clamp(parseInt(r.value || '1'), 1, 20),
+      f: f.value,
+      p: clamp(parseInt(p.value || '1'), 1, 100)
+    };
+    localStorage.setItem('orm', JSON.stringify(state));
+
+    const oneRm = estimateOneRepMax({ weightKg: state.w, reps: state.r, formula: state.f });
+    const atPercent = calculatePercentOfOneRm({ oneRm, percent: state.p });
+    const reverse = reversePercentToOneRm({ targetWeight: state.w, percent: state.p });
+    out.innerHTML = `
+      <div class="grid gap-1">
+        <div class="font-medium">1RM ≈ <b>${oneRm.toFixed(1)} кг</b></div>
+        <div class="text-sm">${state.p}% от 1RM ≈ <b>${atPercent.toFixed(1)} кг</b></div>
+        <div class="text-sm">Если ${state.w} кг это ${state.p}% → 1RM ≈ <b>${reverse.toFixed(1)} кг</b></div>
+      </div>
+    `;
+  }
+
+  ['change','input'].forEach(ev => {
+    w.addEventListener(ev, calc);
+    r.addEventListener(ev, calc);
+    f.addEventListener(ev, calc);
+    p.addEventListener(ev, calc);
+  });
+  calc();
+</script>
+
+
