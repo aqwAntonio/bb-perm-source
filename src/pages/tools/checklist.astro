@@ -44,12 +44,15 @@ import Layout from '../../layouts/Layout.astro';
   listEl.addEventListener('input', (e) => { const t = e.target; if (t.matches('input[type="text"][data-edit]')) { const i = +t.getAttribute('data-edit'); items[i].text = t.value; save(); } });
   listEl.addEventListener('click', (e) => { const t = e.target; if (t.matches('button[data-del]')) { const i = +t.getAttribute('data-del'); items.splice(i,1); save(); render(); } });
   let dragIndex = null;
+  let dragEl = null;
   listEl.addEventListener('dragstart', (e) => {
     const li = e.target.closest('li[draggable]');
     if (!li) return;
     if (!e.target.closest('[data-handle]')) { e.preventDefault(); return; }
     dragIndex = +li.getAttribute('data-i');
     e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', String(dragIndex)); } catch {}
+    dragEl = li;
     li.classList.add('opacity-50');
   });
   listEl.addEventListener('dragover', (e) => {
@@ -70,7 +73,7 @@ import Layout from '../../layouts/Layout.astro';
     dragIndex = null;
     render();
   });
-  listEl.addEventListener('dragend', () => { dragIndex = null; });
+  listEl.addEventListener('dragend', () => { dragIndex = null; if (dragEl) { dragEl.classList.remove('opacity-50'); dragEl = null; } });
   render();
 </script>
 
