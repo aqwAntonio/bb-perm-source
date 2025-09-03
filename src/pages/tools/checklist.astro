@@ -5,13 +5,12 @@ import Layout from '../../layouts/Layout.astro';
 <Layout>
 	<section class="prose prose-zinc dark:prose-invert max-w-none">
 		<h1>Чек‑лист тренировки</h1>
-		<p>Отметьте пункты перед/после тренировки. Можно распечатать в PDF через Ctrl/Cmd+P.</p>
+		<p>Отметьте пункты перед/после тренировки. Пункты можно редактировать и менять порядок.</p>
 		<div class="not-prose grid gap-4 max-w-xl">
 			<ul id="list" class="grid gap-2"></ul>
 			<div class="flex gap-2">
 				<input id="newItem" class="border rounded px-3 py-2 flex-1" placeholder="Добавить пункт" />
 				<button id="add" class="rounded border px-3 py-2">Добавить</button>
-				<button id="print" class="rounded border px-3 py-2">Печать / PDF</button>
 			</div>
 		</div>
 	</section>
@@ -21,7 +20,6 @@ import Layout from '../../layouts/Layout.astro';
   const listEl = document.getElementById('list');
   const input = document.getElementById('newItem');
   const addBtn = document.getElementById('add');
-  const printBtn = document.getElementById('print');
   let items = JSON.parse(localStorage.getItem('checklist') || 'null') ?? [
     { text: 'Разминка 5–10 минут', done: false },
     { text: 'Основные подходы', done: false },
@@ -30,7 +28,8 @@ import Layout from '../../layouts/Layout.astro';
 
   function render(){
     listEl.innerHTML = items.map((it, i) => `
-      <li class="flex items-center gap-2">
+      <li class="flex items-center gap-2" draggable="true" data-i="${i}">
+        <button type="button" class="px-2 cursor-grab select-none" data-handle aria-label="Перетащить">↕</button>
         <input type="checkbox" data-i="${i}" ${it.done?'checked':''} />
         <input type="text" data-edit="${i}" class="border rounded px-2 py-1 flex-1" value="${it.text}" />
         <button data-del="${i}" class="text-red-600 hover:underline">Удалить</button>
@@ -44,7 +43,34 @@ import Layout from '../../layouts/Layout.astro';
   });
   listEl.addEventListener('input', (e) => { const t = e.target; if (t.matches('input[type="text"][data-edit]')) { const i = +t.getAttribute('data-edit'); items[i].text = t.value; save(); } });
   listEl.addEventListener('click', (e) => { const t = e.target; if (t.matches('button[data-del]')) { const i = +t.getAttribute('data-del'); items.splice(i,1); save(); render(); } });
-  printBtn.addEventListener('click', () => window.print());
+  let dragIndex = null;
+  listEl.addEventListener('dragstart', (e) => {
+    const li = e.target.closest('li[draggable]');
+    if (!li) return;
+    if (!e.target.closest('[data-handle]')) { e.preventDefault(); return; }
+    dragIndex = +li.getAttribute('data-i');
+    e.dataTransfer.effectAllowed = 'move';
+    li.classList.add('opacity-50');
+  });
+  listEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+  listEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const li = e.target.closest('li[draggable]');
+    if (!li || dragIndex === null) return;
+    const to = +li.getAttribute('data-i');
+    if (to === dragIndex) { dragIndex = null; render(); return; }
+    const [moved] = items.splice(dragIndex, 1);
+    let toIndex = to;
+    if (toIndex > dragIndex) toIndex -= 1;
+    items.splice(toIndex, 0, moved);
+    save();
+    dragIndex = null;
+    render();
+  });
+  listEl.addEventListener('dragend', () => { dragIndex = null; });
   render();
 </script>
 
