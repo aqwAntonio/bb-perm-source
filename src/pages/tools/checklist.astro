@@ -28,14 +28,16 @@ import Layout from '../../layouts/Layout.astro';
 
   function render(){
     listEl.innerHTML = items.map((it, i) => `
-      <li class="flex items-center gap-2" draggable="false" data-i="${i}">
-        <button type="button" class="px-2 cursor-grab select-none hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-handle draggable="true" aria-label="Перетащить">⋮⋮</button>
+      <li class="flex items-center gap-2" data-i="${i}">
+        <div class="flex flex-col">
+          <button type="button" class="px-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-30" data-up="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Вверх">▲</button>
+          <button type="button" class="px-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-30" data-down="${i}" ${i === items.length - 1 ? 'disabled' : ''} aria-label="Вниз">▼</button>
+        </div>
         <input type="checkbox" data-i="${i}" ${it.done?'checked':''} />
         <input type="text" data-edit="${i}" class="border rounded px-2 py-1 flex-1" value="${it.text}" />
         <button data-del="${i}" class="text-red-600 hover:underline">Удалить</button>
       </li>
     `).join('');
-    setupDragAndDrop();
   }
   function save(){ localStorage.setItem('checklist', JSON.stringify(items)); }
   addBtn.addEventListener('click', () => { const t = input.value.trim(); if (!t) return; items.push({ text: t, done: false }); input.value=''; save(); render(); });
@@ -43,56 +45,31 @@ import Layout from '../../layouts/Layout.astro';
     const t = e.target; if (t.matches('input[type="checkbox"][data-i]')) { const i = +t.getAttribute('data-i'); items[i].done = t.checked; save(); }
   });
   listEl.addEventListener('input', (e) => { const t = e.target; if (t.matches('input[type="text"][data-edit]')) { const i = +t.getAttribute('data-edit'); items[i].text = t.value; save(); } });
-  listEl.addEventListener('click', (e) => { const t = e.target; if (t.matches('button[data-del]')) { const i = +t.getAttribute('data-del'); items.splice(i,1); save(); render(); } });
-
-  let dragFrom = null;
-  function setupDragAndDrop() {
-    const handles = listEl.querySelectorAll('[data-handle]');
-    const lis = listEl.querySelectorAll('li');
-    
-    handles.forEach((handle, idx) => {
-      const li = handle.closest('li');
-      
-      handle.addEventListener('dragstart', (e) => {
-        dragFrom = idx;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', String(idx));
-        li.classList.add('opacity-50', 'scale-105', 'shadow-lg', 'z-10', 'relative');
-        console.log('Drag started from:', idx);
-      });
-      
-      handle.addEventListener('dragend', () => {
-        li.classList.remove('opacity-50', 'scale-105', 'shadow-lg', 'z-10', 'relative');
-        dragFrom = null;
-        console.log('Drag ended');
-      });
-    });
-    
-    lis.forEach((li, idx) => {
-      li.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        if (dragFrom !== null && dragFrom !== idx) {
-          li.classList.add('bg-blue-100', 'dark:bg-blue-900', 'border-l-4', 'border-blue-500');
-        }
-      });
-      
-      li.addEventListener('dragleave', (e) => {
-        li.classList.remove('bg-blue-100', 'dark:bg-blue-900', 'border-l-4', 'border-blue-500');
-      });
-      
-      li.addEventListener('drop', (e) => {
-        e.preventDefault();
-        li.classList.remove('bg-blue-100', 'dark:bg-blue-900', 'border-l-4', 'border-blue-500');
-        if (dragFrom === null || dragFrom === idx) return;
-        console.log('Drop from', dragFrom, 'to', idx);
-        const [moved] = items.splice(dragFrom, 1);
-        items.splice(idx, 0, moved);
+  listEl.addEventListener('click', (e) => { 
+    const t = e.target; 
+    if (t.matches('button[data-del]')) { 
+      const i = +t.getAttribute('data-del'); 
+      items.splice(i,1); 
+      save(); 
+      render(); 
+    }
+    if (t.matches('button[data-up]')) {
+      const i = +t.getAttribute('data-up');
+      if (i > 0) {
+        [items[i-1], items[i]] = [items[i], items[i-1]];
         save();
         render();
-      });
-    });
-  }
+      }
+    }
+    if (t.matches('button[data-down]')) {
+      const i = +t.getAttribute('data-down');
+      if (i < items.length - 1) {
+        [items[i], items[i+1]] = [items[i+1], items[i]];
+        save();
+        render();
+      }
+    }
+  });
   render();
 </script>
 
