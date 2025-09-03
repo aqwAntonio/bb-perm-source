@@ -9,6 +9,19 @@ const initial = stored ?? { sex: 'male', weightKg: 80, heightCm: 180, ageYears: 
 <Layout>
 	<section class="prose prose-zinc dark:prose-invert max-w-none">
 		<h1>TDEE / BMR (Mifflin–St Jeor)</h1>
+		<p>
+			<b>BMR</b> — базовый обмен веществ, сколько калорий тратит тело в покое.
+			<b>TDEE</b> — суточные энергозатраты с учётом вашей активности.
+		</p>
+		<details>
+			<summary class="cursor-pointer">Как пользоваться</summary>
+			<ol>
+				<li>Выберите пол, укажите вес, рост и возраст.</li>
+				<li>Выберите уровень активности (сколько тренируетесь в неделю).</li>
+				<li>Снизу увидите расчёт BMR и TDEE. Ниже — ориентир по БЖУ.</li>
+				<li>Значения сохраняются локально и подставятся при следующем визите.</li>
+			</ol>
+		</details>
 		<form id="tdee-form" class="not-prose grid gap-3 max-w-xl" on:submit={(e) => e.preventDefault()}>
 			<label class="grid gap-1">
 				<span>Пол</span>

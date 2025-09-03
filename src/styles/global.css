@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+@theme {
+  --color-link: var(--color-blue-600);
+  --color-link-hover: var(--color-blue-700);
+  --color-link-dark: var(--color-sky-400);
+  --color-link-dark-hover: var(--color-sky-300);
+}
+
+/* Make links stand out in prose */
+.prose a {
+  @apply text-blue-600 underline decoration-1 underline-offset-4 hover:text-blue-700 hover:decoration-2 dark:text-sky-400 dark:hover:text-sky-300;
+}
