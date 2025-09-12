@@ -57,8 +57,14 @@ const { title, description } = Astro.props as { title?: string; description?: st
 		<main class="mx-auto max-w-5xl px-4 py-8">
 			<slot />
 		</main>
-		<footer class="mt-12 border-t py-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
-			© {new Date().getFullYear()} bodybuilding.perm.ru
+		<footer class="mt-12 border-t py-6 text-xs text-zinc-500 dark:text-zinc-400">
+			<div class="mx-auto max-w-5xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+				<div>© {new Date().getFullYear()} bodybuilding.perm.ru</div>
+				<nav class="flex gap-4">
+					<a href="/add-to-home" class="hover:text-zinc-700 dark:hover:text-zinc-300">Добавить на экран</a>
+					<a href="/privacy" class="hover:text-zinc-700 dark:hover:text-zinc-300">Конфиденциальность</a>
+				</nav>
+			</div>
 		</footer>
 		<noscript><div><img src="https://mc.yandex.ru/watch/104005019" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 	</body>
