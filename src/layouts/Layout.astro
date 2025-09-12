@@ -1,17 +1,18 @@
 ---
 import '../styles/global.css';
+const { title, description } = Astro.props as { title?: string; description?: string };
 ---
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="description" content="Калькуляторы для тренировок и питания: TDEE/BMR, 1RM, объём/тоннаж, конвертеры, таймер, чек‑лист. Быстро и без рекламы." />
+		<meta name="description" content={description ?? 'Калькуляторы для тренировок и питания: TDEE/BMR, 1RM, объём/тоннаж, конвертеры, таймер, чек‑лист. Быстро и без рекламы.'} />
 		<meta property="og:type" content="website" />
-		<meta property="og:title" content="bodybuilding.perm.ru — инструменты для тренировок" />
-		<meta property="og:description" content="TDEE/BMR, 1RM, объём/тоннаж, конвертеры, таймер, чек‑лист — всё под рукой." />
+		<meta property="og:title" content={(title ? `${title} — bodybuilding.perm.ru` : 'bodybuilding.perm.ru — инструменты для тренировок')} />
+		<meta property="og:description" content={description ?? 'TDEE/BMR, 1RM, объём/тоннаж, конвертеры, таймер, чек‑лист — всё под рукой.'} />
 		<meta property="og:url" content={Astro.site?.toString() ?? 'https://bodybuilding.perm.ru'} />
 		<meta name="twitter:card" content="summary" />
 		<script is:inline type="application/ld+json">{JSON.stringify({
@@ -21,6 +22,15 @@ import '../styles/global.css';
 			"name":"bodybuilding.perm.ru",
 			"description":"Калькуляторы для тренировок и питания в Перми: TDEE/BMR, 1RM, объём, конвертеры, таймер, чек‑лист."
 		})}</script>
+		{title && (
+			<script is:inline type="application/ld+json">{JSON.stringify({
+				"@context":"https://schema.org",
+				"@type":"WebPage",
+				"name": title,
+				"url": Astro.site?.toString() ?? undefined,
+				"description": description ?? undefined
+			})}</script>
+		)}
 		<script is:inline>
 			(function(m,e,t,r,i,k,a){
 				m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
@@ -31,7 +41,7 @@ import '../styles/global.css';
 
 			ym(104005019, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
 		</script>
-		<title>bodybuilding.perm.ru</title>
+		<title>{title ? `${title} — bodybuilding.perm.ru` : 'bodybuilding.perm.ru'}</title>
 	</head>
 	<body>
 		<header class="border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-900/80 dark:supports-[backdrop-filter]:bg-zinc-900/60">
@@ -39,7 +49,7 @@ import '../styles/global.css';
 				<a href="/" class="font-semibold text-zinc-900 dark:text-zinc-100">BB Perm</a>
 				<nav class="flex gap-4 text-sm">
 					<a href="/" class="text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">Главная</a>
-					<a href="/tools/" class="text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">Калькуляторы</a>
+					<a href="/tools/" class="text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">Инструменты</a>
 					<a href="/about" class="text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">О проекте</a>
 				</nav>
 			</div>

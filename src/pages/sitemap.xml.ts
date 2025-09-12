@@ -3,9 +3,18 @@ import type { APIRoute } from 'astro';
 const routes = [
   '/',
   '/about/',
+  '/privacy/',
+  '/add-to-home/',
   '/tools/',
   '/tools/tdee/',
   '/tools/one-rep-max/',
+  '/tools/volume/',
+  '/tools/converters/',
+  '/tools/timer/',
+  '/tools/checklist/',
+  '/tools/recipe-generator/',
+  '/tools/recipe-favorites/',
+  '/tools/program-generator/',
 ];
 
 export const GET: APIRoute = ({ site }) => {

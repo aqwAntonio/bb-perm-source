@@ -2,10 +2,10 @@
 import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout>
+<Layout title="Чек‑лист тренировки" description="Редактируемые пункты перед/после тренировки. Сохраняются локально.">
 	<section class="prose prose-zinc dark:prose-invert max-w-none">
 		<h1>Чек‑лист тренировки</h1>
-		<p>Отметьте пункты перед/после тренировки. Пункты можно редактировать и менять порядок.</p>
+		<p>Отметьте пункты перед/после тренировки. Пункты можно редактировать.</p>
 		<div class="not-prose grid gap-4 max-w-xl">
 			<ul id="list" class="grid gap-2"></ul>
 			<div class="flex gap-2">
@@ -29,10 +29,6 @@ import Layout from '../../layouts/Layout.astro';
   function render(){
     listEl.innerHTML = items.map((it, i) => `
       <li class="flex items-center gap-2" data-i="${i}">
-        <div class="flex flex-col">
-          <button type="button" class="px-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-30" data-up="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Вверх">▲</button>
-          <button type="button" class="px-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-30" data-down="${i}" ${i === items.length - 1 ? 'disabled' : ''} aria-label="Вниз">▼</button>
-        </div>
         <input type="checkbox" data-i="${i}" ${it.done?'checked':''} />
         <input type="text" data-edit="${i}" class="border rounded px-2 py-1 flex-1" value="${it.text}" />
         <button data-del="${i}" class="text-red-600 hover:underline">Удалить</button>
@@ -52,22 +48,6 @@ import Layout from '../../layouts/Layout.astro';
       items.splice(i,1); 
       save(); 
       render(); 
-    }
-    if (t.matches('button[data-up]')) {
-      const i = +t.getAttribute('data-up');
-      if (i > 0) {
-        [items[i-1], items[i]] = [items[i], items[i-1]];
-        save();
-        render();
-      }
-    }
-    if (t.matches('button[data-down]')) {
-      const i = +t.getAttribute('data-down');
-      if (i < items.length - 1) {
-        [items[i], items[i+1]] = [items[i+1], items[i]];
-        save();
-        render();
-      }
     }
   });
   render();

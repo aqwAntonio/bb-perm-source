@@ -6,7 +6,7 @@ const stored = typeof window === 'undefined' ? null : JSON.parse(localStorage.ge
 const initial = stored ?? { sex: 'male', weightKg: 80, heightCm: 180, ageYears: 30, activity: 'moderate' };
 ---
 
-<Layout>
+<Layout title="TDEE / BMR" description="Расчёт базового обмена (BMR) и суточной нормы калорий (TDEE). Рекомендации по БЖУ.">
 	<section class="prose prose-zinc dark:prose-invert max-w-none">
 		<h1>TDEE / BMR (Mifflin–St Jeor)</h1>
 		<p>

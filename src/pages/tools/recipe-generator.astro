@@ -1,0 +1,185 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Генератор блюд" description="Простые быстрые рецепты с ориентировочной КБЖУ и добавлением в избранное.">
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>Генератор простых полезных блюд</h1>
+		<p>Быстрые рецепты из доступных продуктов с ориентировочной КБЖУ на порцию.</p>
+		<details>
+			<summary class="cursor-pointer">Как пользоваться</summary>
+			<ol>
+				<li>Выберите тип приёма пищи, ориентиры по калориям и белку.</li>
+				<li>Укажите максимум времени на готовку.</li>
+				<li>Нажмите «Сгенерировать» — получите несколько подходящих вариантов.</li>
+			</ol>
+		</details>
+
+		<form id="prefs" class="not-prose grid gap-3 max-w-xl" on:submit={(e) => e.preventDefault()}>
+			<div class="grid grid-cols-2 gap-3">
+				<label class="grid gap-1">
+					<span>Тип приёма пищи</span>
+					<select id="meal" class="border rounded px-3 py-2">
+						<option value="any">Любой</option>
+						<option value="breakfast">Завтрак</option>
+						<option value="lunch">Обед</option>
+						<option value="dinner">Ужин</option>
+						<option value="snack">Перекус</option>
+					</select>
+				</label>
+				<label class="grid gap-1">
+					<span>Макс. время, мин</span>
+					<select id="time" class="border rounded px-3 py-2">
+						<option value="10">10</option>
+						<option value="20" selected>20</option>
+						<option value="30">30</option>
+						<option value="45">45</option>
+					</select>
+				</label>
+			</div>
+			<div class="grid grid-cols-2 gap-3">
+				<label class="grid gap-1"><span>Цель калорий / порция</span><input id="kcals" type="number" min="150" max="1200" step="10" class="border rounded px-3 py-2" value="500" /></label>
+				<label class="grid gap-1"><span>Мин. белка, г</span><input id="protein" type="number" min="5" max="120" step="1" class="border rounded px-3 py-2" value="25" /></label>
+			</div>
+			<div class="grid grid-cols-2 gap-3">
+				<label class="grid gap-1">
+					<span>Предпочтение</span>
+					<select id="pref" class="border rounded px-3 py-2">
+						<option value="any">Без предпочтений</option>
+						<option value="meat">Мясо/птица</option>
+						<option value="fish">Рыба/морепродукты</option>
+						<option value="dairy">Молочные</option>
+						<option value="veggie">Вегетарианские</option>
+					</select>
+				</label>
+			</div>
+			<div class="flex gap-2">
+				<button id="generate" class="rounded border px-3 py-2">Сгенерировать</button>
+				<button id="shuffle" class="rounded border px-3 py-2" type="button">Ещё варианты</button>
+			</div>
+		</form>
+
+		<div class="mt-6">
+			<a href="/tools/recipe-favorites" class="inline-block rounded border px-3 py-2">Перейти в избранное →</a>
+		</div>
+
+		<div id="results" class="not-prose mt-6 grid gap-3 max-w-2xl"></div>
+	</section>
+</Layout>
+
+<script>
+  import { recipes } from '../../lib/recipes';
+
+  const prefsForm = document.getElementById('prefs');
+  const mealEl = document.getElementById('meal');
+  const timeEl = document.getElementById('time');
+  const kcalsEl = document.getElementById('kcals');
+  const proteinEl = document.getElementById('protein');
+  const prefEl = document.getElementById('pref');
+  const resultsEl = document.getElementById('results');
+  // favorites на отдельной странице — оставляем только ссылку
+  const generateBtn = document.getElementById('generate');
+  const shuffleBtn = document.getElementById('shuffle');
+  const favKey = 'recipe_favs';
+  let favorites = JSON.parse(localStorage.getItem(favKey) || '[]');
+  function saveFavs(){ localStorage.setItem(favKey, JSON.stringify(favorites)); }
+  function isFav(id){ return favorites.includes(id); }
+  function toggleFav(id){ if (isFav(id)) favorites = favorites.filter(x => x !== id); else favorites.push(id); saveFavs(); render(lastRendered); }
+
+  const stored = JSON.parse(localStorage.getItem('recipe_prefs') || 'null');
+  if (stored) {
+    mealEl.value = stored.meal || 'any';
+    timeEl.value = String(stored.timeMin || 20);
+    kcalsEl.value = String(stored.kcalsTarget || 500);
+    proteinEl.value = String(stored.proteinMin || 25);
+    prefEl.value = stored.pref || 'any';
+  }
+
+  function savePrefs() {
+    const prefs = {
+      meal: mealEl.value,
+      timeMin: parseInt(timeEl.value || '20'),
+      kcalsTarget: parseInt(kcalsEl.value || '500'),
+      proteinMin: parseInt(proteinEl.value || '25'),
+      pref: prefEl.value,
+    };
+    localStorage.setItem('recipe_prefs', JSON.stringify(prefs));
+    return prefs;
+  }
+
+  function scoreRecipe(recipe, prefs) {
+    let score = 0;
+    if (prefs.meal === 'any' || recipe.meal === prefs.meal) score += 2;
+    if (prefs.pref === 'any' || recipe.pref === prefs.pref) score += 1;
+    if (recipe.timeMin <= prefs.timeMin) score += 2;
+    const kcalsDiff = Math.abs(recipe.kcals - prefs.kcalsTarget);
+    score += Math.max(0, 3 - Math.round(kcalsDiff / 100));
+    if (recipe.protein >= prefs.proteinMin) score += 2;
+    return score;
+  }
+
+  let lastRendered = [];
+  function render(recList) {
+    lastRendered = recList;
+    if (!recList.length) {
+      resultsEl.innerHTML = '<div class="text-zinc-600 dark:text-zinc-400">Под критерии ничего не найдено. Попробуйте ослабить фильтры.</div>';
+      return;
+    }
+    resultsEl.innerHTML = recList.map(r => `
+      <article class="border rounded p-4 grid gap-2">
+        <div class="flex items-baseline justify-between">
+          <h3 class="font-medium">${r.title}</h3>
+          <div class="text-xs text-zinc-600 dark:text-zinc-400">${r.timeMin} мин • ${r.meal}</div>
+        </div>
+        <div class="text-sm">Калории: <b>${r.kcals}</b> • Белки: <b>${r.protein} г</b> • Жиры: <b>${r.fat} г</b> • Углеводы: <b>${r.carbs} г</b></div>
+        <ul class="list-disc pl-5 text-sm">
+          ${r.ingredients?.map(i => `<li>${i.name}: <b>${i.amount}</b> ${i.unit}${i.note ? ` (${i.note})` : ''}</li>`).join('')}
+        </ul>
+        <ol class="list-decimal pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+          ${r.steps.map(s => `<li>${s}</li>`).join('')}
+        </ol>
+        <div>
+          <button type="button" data-fav="${r.id}" class="rounded border px-3 py-2 text-sm">
+            ${isFav(r.id) ? '★ В избранном' : '☆ В избранное'}
+          </button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+
+  function generate() {
+    const prefs = savePrefs();
+    const candidates = recipes
+      .map(r => ({ r, score: scoreRecipe(r, prefs) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.r);
+    render(candidates.slice(0, 3));
+  }
+
+  function shuffleMore() {
+    const prefs = JSON.parse(localStorage.getItem('recipe_prefs') || '{}');
+    const list = recipes
+      .filter(r => (prefs.meal ? prefs.meal === 'any' || r.meal === prefs.meal : true))
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    render(list);
+  }
+
+  generateBtn.addEventListener('click', generate);
+  shuffleBtn.addEventListener('click', shuffleMore);
+  ['change','input'].forEach(ev => prefsForm.addEventListener(ev, savePrefs));
+  resultsEl.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t && t.matches('button[data-fav]')) {
+      const id = t.getAttribute('data-fav');
+      toggleFav(id);
+    }
+  });
+  generate();
+
+</script>
+
+
+

@@ -1,0 +1,140 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Генератор программы" description="Базовая программа на 4–8 недель: A/B или Upper/Lower, с учётом оборудования.">
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>Генератор простой программы (4–8 недель)</h1>
+		<p>На основе базовых принципов: прогрессия нагрузки, частота 3–4 раза в неделю, базовые упражнения.</p>
+		<details>
+			<summary class="cursor-pointer">Как пользоваться</summary>
+			<ol>
+				<li>Выберите уровень (новичок/средний) и частоту тренировок.</li>
+				<li>Укажите доступное оборудование и приоритеты (сила/масса/общая форма).</li>
+				<li>Сгенерируйте план — получите недельную сетку и прогрессию на 4–8 недель.</li>
+			</ol>
+		</details>
+		<form id="pg" class="not-prose grid gap-3 max-w-xl">
+			<div class="grid grid-cols-2 gap-3">
+				<label class="grid gap-1"><span>Уровень</span>
+					<select id="level" class="border rounded px-3 py-2">
+						<option value="novice">Новичок</option>
+						<option value="intermediate">Средний</option>
+					</select>
+				</label>
+				<label class="grid gap-1"><span>Тренировок/нед</span>
+					<select id="freq" class="border rounded px-3 py-2">
+						<option value="3">3</option>
+						<option value="4">4</option>
+					</select>
+				</label>
+			</div>
+			<div class="grid grid-cols-2 gap-3">
+				<label class="grid gap-1"><span>Цель</span>
+					<select id="goal" class="border rounded px-3 py-2">
+						<option value="general">Общая форма</option>
+						<option value="strength">Сила</option>
+						<option value="hypertrophy">Масса</option>
+					</select>
+				</label>
+				<label class="grid gap-1"><span>Длительность, недель</span>
+					<select id="weeks" class="border rounded px-3 py-2">
+						<option value="4">4</option>
+						<option value="6">6</option>
+						<option value="8">8</option>
+					</select>
+				</label>
+			</div>
+			<fieldset class="grid gap-2 border rounded p-3">
+				<legend class="text-sm text-zinc-600 dark:text-zinc-400">Оборудование</legend>
+				<label class="inline-flex items-center gap-2"><input id="eq-barbell" type="checkbox" class="border rounded" /> <span>Штанга</span></label>
+				<label class="inline-flex items-center gap-2"><input id="eq-rack" type="checkbox" class="border rounded" /> <span>Стойки/рама</span></label>
+				<label class="inline-flex items-center gap-2"><input id="eq-bench" type="checkbox" class="border rounded" /> <span>Скамья</span></label>
+				<label class="inline-flex items-center gap-2"><input id="eq-dumbbells" type="checkbox" class="border rounded" /> <span>Гантели</span></label>
+				<label class="inline-flex items-center gap-2"><input id="eq-pullup" type="checkbox" class="border rounded" /> <span>Турник</span></label>
+				<label class="inline-flex items-center gap-2"><input id="eq-machines" type="checkbox" class="border rounded" /> <span>Тренажёры (блоки)</span></label>
+			</fieldset>
+			<div class="flex gap-2">
+				<button id="gen" type="button" class="rounded border px-3 py-2">Сгенерировать</button>
+			</div>
+		</form>
+		<div id="out" class="not-prose mt-6 grid gap-3 max-w-3xl"></div>
+	</section>
+</Layout>
+
+<script>
+  import { generateProgram } from '../../lib/program';
+  const level = document.getElementById('level');
+  const freq = document.getElementById('freq');
+  const goal = document.getElementById('goal');
+  const weeks = document.getElementById('weeks');
+  const eq = {
+    barbell: document.getElementById('eq-barbell'),
+    rack: document.getElementById('eq-rack'),
+    bench: document.getElementById('eq-bench'),
+    dumbbells: document.getElementById('eq-dumbbells'),
+    pullup: document.getElementById('eq-pullup'),
+    machines: document.getElementById('eq-machines'),
+  };
+  const out = document.getElementById('out');
+  const gen = document.getElementById('gen');
+
+  const LS_KEY = 'program_gen';
+  const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+  if (saved) {
+    if (saved.level === 'novice' || saved.level === 'intermediate') level.value = saved.level;
+    const sf = String(saved.freq);
+    if (sf === '3' || sf === '4') freq.value = sf;
+    if (saved.goal) goal.value = saved.goal;
+    if (saved.weeks) weeks.value = String(saved.weeks);
+    if (saved.equipment) {
+      Object.keys(eq).forEach(k => { if (saved.equipment[k] != null) eq[k].checked = !!saved.equipment[k]; });
+    }
+  }
+
+  function template(day, blocks){
+    return `<article class="border rounded p-4 grid gap-2">
+      <h3 class="font-medium">${day}</h3>
+      <ul class="list-disc pl-5 text-sm">${blocks.map(b => `<li>${b}</li>`).join('')}</ul>
+    </article>`;
+  }
+
+  function buildPlan(){
+    const f = parseInt(freq.value||'3');
+    const params = {
+      level: level.value,
+      frequency: f,
+      goal: goal.value,
+      weeks: parseInt(weeks.value||'4'),
+      equipment: Object.fromEntries(Object.keys(eq).map(k => [k, !!eq[k].checked]))
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(params));
+    const plan = generateProgram(params);
+    out.innerHTML = plan.map(week => `
+      <section class="grid gap-2">
+        <h2 class="font-medium">Неделя ${week.week}</h2>
+        ${week.days.map(d => template(d.title, d.blocks)).join('')}
+        <div class="text-xs text-zinc-600 dark:text-zinc-400">${week.note}</div>
+      </section>
+    `).join('');
+  }
+
+  gen.addEventListener('click', () => { buildPlan(); });
+  ;['change','input'].forEach(ev => {
+    [level, freq, goal, weeks, ...Object.values(eq)].forEach(el => el.addEventListener(ev, () => {
+      const f = parseInt(freq.value||'3');
+      const params = {
+        level: level.value,
+        frequency: f,
+        goal: goal.value,
+        weeks: parseInt(weeks.value||'4'),
+        equipment: Object.fromEntries(Object.keys(eq).map(k => [k, !!eq[k].checked]))
+      };
+      localStorage.setItem(LS_KEY, JSON.stringify(params));
+    }));
+  });
+  buildPlan();
+</script>
+
+
+

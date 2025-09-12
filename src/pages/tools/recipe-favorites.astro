@@ -1,0 +1,68 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Избранные блюда" description="Сохранённые рецепты из генератора блюд.">
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>Избранные блюда</h1>
+		<p>Сохранённые рецепты. Нажмите на звёздочку, чтобы убрать из избранного.</p>
+		<div class="mt-2"><a href="/tools/recipe-generator" class="inline-block rounded border px-3 py-2">← К генератору</a></div>
+		<div id="favorites" class="not-prose mt-6 grid gap-3 max-w-2xl"></div>
+	</section>
+</Layout>
+
+<script>
+  import { recipes, recipeById } from '../../lib/recipes';
+  const favKey = 'recipe_favs';
+  const favoritesEl = document.getElementById('favorites');
+
+  function getFavs(){ return JSON.parse(localStorage.getItem(favKey) || '[]'); }
+  function saveFavs(list){ localStorage.setItem(favKey, JSON.stringify(list)); }
+  function isFav(id, list){ return list.includes(id); }
+  function toggleFav(id){
+    const list = getFavs();
+    const next = isFav(id, list) ? list.filter(x => x !== id) : [...list, id];
+    saveFavs(next);
+    render();
+  }
+
+  function render(){
+    const list = getFavs();
+    if (!list.length) {
+      favoritesEl.innerHTML = '<div class="text-zinc-600 dark:text-zinc-400">В избранном пока пусто.</div>';
+      return;
+    }
+    const favList = list.map(id => recipeById[id]).filter(Boolean);
+    favoritesEl.innerHTML = favList.map(r => `
+      <article class="border rounded p-4 grid gap-2">
+        <div class="flex items-baseline justify-between">
+          <h3 class="font-medium">${r.title}</h3>
+          <div class="text-xs text-zinc-600 dark:text-zinc-400">${r.timeMin} мин • ${r.meal}</div>
+        </div>
+        <div class="text-sm">Калории: <b>${r.kcals}</b> • Белки: <b>${r.protein} г</b> • Жиры: <b>${r.fat} г</b> • Углеводы: <b>${r.carbs} г</b></div>
+        <ul class="list-disc pl-5 text-sm">
+          ${r.ingredients?.map(i => `<li>${i.name}: <b>${i.amount}</b> ${i.unit}${i.note ? ` (${i.note})` : ''}</li>`).join('')}
+        </ul>
+        <ol class="list-decimal pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+          ${r.steps.map(s => `<li>${s}</li>`).join('')}
+        </ol>
+        <div>
+          <button type="button" data-fav="${r.id}" class="rounded border px-3 py-2 text-sm">★ Убрать из избранного</button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  favoritesEl.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t && t.matches('button[data-fav]')) {
+      const id = t.getAttribute('data-fav');
+      toggleFav(id);
+    }
+  });
+
+  render();
+</script>
+
+
+
