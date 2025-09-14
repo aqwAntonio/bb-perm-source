@@ -15,6 +15,7 @@ const routes = [
   '/tools/recipe-generator/',
   '/tools/recipe-favorites/',
   '/tools/program-generator/',
+  '/tools/shake-generator/',
 ];
 
 export const GET: APIRoute = ({ site }) => {

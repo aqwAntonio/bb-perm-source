@@ -1,0 +1,82 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Генератор коктейлей" description="Белковые, углеводные и изотонические коктейли. Акцент на белковых для бодибилдинга.">
+	<section class="prose prose-zinc dark:prose-invert max-w-none">
+		<h1>Генератор спортивных коктейлей</h1>
+		<p>Подбор быстрых коктейлей: белковые, углеводные и изотонические. Список ингредиентов и КБЖУ.</p>
+		<form id="prefs" class="not-prose grid gap-3 max-w-xl" on:submit={(e) => e.preventDefault()}>
+			<div class="grid grid-cols-2 gap-3">
+				<label class="grid gap-1"><span>Тип</span>
+					<select id="type" class="border rounded px-3 py-2">
+						<option value="protein">Белковый</option>
+						<option value="carb">Углеводный</option>
+						<option value="isotonic">Изотонический</option>
+						<option value="any">Любой</option>
+					</select>
+				</label>
+				<label class="grid gap-1"><span>Макс. время, мин</span>
+					<select id="time" class="border rounded px-3 py-2">
+						<option value="2">2</option>
+						<option value="5" selected>5</option>
+						<option value="10">10</option>
+					</select>
+				</label>
+			</div>
+			<div class="grid grid-cols-2 gap-3">
+				<label class="grid gap-1"><span>Мин. белка, г</span><input id="protein" type="number" min="0" max="80" step="1" class="border rounded px-3 py-2" value="25" /></label>
+				<label class="grid gap-1"><span>Цель калорий</span><input id="kcals" type="number" min="0" max="800" step="10" class="border rounded px-3 py-2" value="0" /></label>
+			</div>
+			<div class="flex gap-2">
+				<button id="generate" class="rounded border px-3 py-2">Сгенерировать</button>
+				<button id="shuffle" type="button" class="rounded border px-3 py-2">Ещё вариант</button>
+			</div>
+		</form>
+
+		<div id="results" class="not-prose mt-6 grid gap-3 max-w-2xl"></div>
+	</section>
+</Layout>
+
+<script>
+  import { shakes } from '../../lib/shakes';
+  const typeEl = document.getElementById('type');
+  const timeEl = document.getElementById('time');
+  const proteinEl = document.getElementById('protein');
+  const kcalsEl = document.getElementById('kcals');
+  const resultsEl = document.getElementById('results');
+  const genBtn = document.getElementById('generate');
+  const shuffleBtn = document.getElementById('shuffle');
+
+  function render(list){
+    if (!list.length) { resultsEl.innerHTML = '<div class="text-zinc-600 dark:text-zinc-400">Под ваш запрос ничего не найдено.</div>'; return; }
+    resultsEl.innerHTML = list.map(r => `
+      <article class="border rounded p-4 grid gap-2">
+        <div class="flex items-baseline justify-between">
+          <h3 class="font-medium">${r.title}</h3>
+          <div class="text-xs text-zinc-600 dark:text-zinc-400">${r.timeMin} мин • ${r.type}</div>
+        </div>
+        <div class="text-sm">Ккал: <b>${r.kcals}</b> • Белки: <b>${r.protein} г</b> • Углеводы: <b>${r.carbs} г</b> • Жиры: <b>${r.fat} г</b></div>
+        <ul class="list-disc pl-5 text-sm">${r.ingredients.map(i => `<li>${i.name}: <b>${i.amount}</b> ${i.unit}${i.note?` (${i.note})`:''}</li>`).join('')}</ul>
+        <ol class="list-decimal pl-5 text-sm text-zinc-700 dark:text-zinc-300">${r.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+      </article>
+    `).join('');
+  }
+
+  function generate(){
+    const t = typeEl.value;
+    const list = shakes
+      .filter(s => (t==='any' ? true : s.type === t))
+      .filter(s => s.timeMin <= parseInt(timeEl.value||'5'))
+      .filter(s => parseInt(proteinEl.value||'0') === 0 ? true : s.protein >= parseInt(proteinEl.value||'0'))
+      .filter(s => parseInt(kcalsEl.value||'0') === 0 ? true : Math.abs(s.kcals - parseInt(kcalsEl.value||'0')) <= 100)
+      .sort((a,b) => b.protein - a.protein);
+    render(list.slice(0,3));
+  }
+
+  genBtn.addEventListener('click', (e) => { e.preventDefault(); generate(); });
+  shuffleBtn.addEventListener('click', () => { render(shakes.sort(()=>Math.random()-0.5).slice(0,3)); });
+  generate();
+</script>
+
+
